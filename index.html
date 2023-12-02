@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
+        <meta name="robots" content="noindex">
+        <title>RCR maker ❄️</title>
+        <link rel="icon" href="./favicon.ico">
+        <script type="text/javascript" src="./data.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    </head>
+    <style>
+        body {
+            user-select: none;
+            font-family: sans-serif;
+            font-weight: 400;
+            background-color: #083344;
+            color: lightgray;
+            text-align: center;
+        }
+        #infoWindow1 {
+            font-family: sans-serif;
+        }
+        a {
+            color: lightblue;
+        }
+        button {
+            width: 160px;
+            height: 30px;
+            background-color: #0f4a60;
+            vertical-align: middle;
+            color: lightgray;
+            border: none;
+            cursor: pointer;
+            margin-top: 4px;
+            border-bottom: 3px solid #5ac5e6;
+            transition: border-bottom 0.1s;
+        }
+        button:hover {
+            border-bottom: 3px solid #e65a5a;
+        }
+        textarea {
+            width: 98%;
+            max-width: 600px;
+            margin: auto;
+            background-color: #0f4a60;
+            border: none;
+            border-radius: 3px;
+            color: #d3d3d3;
+        }
+        .hover-zoom {
+            width: 100%;
+            max-width: 400px;
+            transition: max-width 0.5s ease-in-out;
+            border-radius: 4px;
+        }
+        .hover-zoom:hover {
+            max-width: 800px;
+        }
+        .info {
+            outline-width: 1px;
+            border-left: 3px solid #bbb;
+            padding: 12px 12px 12px 12px;
+            border-left-color: #0288d1;
+            color: #0288d1;
+            background-color: #001825;
+            max-width: 560px;
+            text-align: left;
+            margin: auto;
+            display: flex;
+            align-items: center;
+        }
+        .infoSymbol {
+            width: 20px;
+            line-height: 20px;
+            margin-right: 10px;
+        }
+
+    </style>
+    <body>
+        <h1>Winter Runway Condition Report</h1>
+        <h3>Insert SNOWTAM:</h3>
+        <p><a href="https://www.ais.fi/bulletins/efinen-fr.htm" target="_blank">https://www.ais.fi/bulletins/efinen-fr.htm</a></p>
+        <textarea type="text" id="snowtam" rows="10" name="snowtam"></textarea>
+        <br><br>
+        <button onclick="generateRCR();">GENERATE</button>
+        <hr>
+        <!-- final RCR here -->
+        <h3 id="aerodrome" style="display: inline-block; vertical-align: middle;"></h3>
+        &ensp;
+        <img id="copyButton" src="./copySymbol.png" alt="copy" onclick="copyTextToClipboard();" style="width: 24px; vertical-align: middle; visibility: hidden; cursor: pointer;">
+        <br>
+        <div id="rcrOutput" style="text-align: center"></div>
+        <br>
+        <div id="warning" class="info" style="visibility: hidden;">
+            <img src="./info-symbol.png" alt="i" class="infoSymbol">
+            Check RCR content and paste to vATIS ARPT COND field
+        </div>
+        <img id="video" src="./rcr-maker.gif" alt="tutorial" class="hover-zoom">
+    </body>
+</html>
+
+
