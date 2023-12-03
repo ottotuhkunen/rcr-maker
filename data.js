@@ -98,27 +98,50 @@ function makeRWYCC(snowtam) {
     }
 
     // downgraded/upgraded values
-    var firstPartRegex = /FIRST PART RWYCC (UPGRADED|DOWNGRADED)/;
-    var secondPartRegex = /SECOND PART RWYCC (UPGRADED|DOWNGRADED)/;
-    var thirdPartRegex = /THIRD PART RWYCC (UPGRADED|DOWNGRADED)/;
+    if (snowtam.includes(" 04L ")) {
+        // EFHK
+        var firstPartRegexEFHK = /04L (?:FIRST PART )?RWYCC (UPGRADED|DOWNGRADED)/;
+        var secondPartRegexEFHK = /04L (?:SECOND PART )?RWYCC (UPGRADED|DOWNGRADED)/;
+        var thirdPartRegexEFHK = /04L (?:THIRD PART )?RWYCC (UPGRADED|DOWNGRADED)/;
+        var matchFirstPartEFHK = snowtam.match(firstPartRegexEFHK);
+        var matchSecondPartEFHK = snowtam.match(secondPartRegexEFHK);
+        var matchThirdPartEFHK = snowtam.match(thirdPartRegexEFHK);
 
-    var matchFirstPart = snowtam.match(firstPartRegex);
-    var matchSecondPart = snowtam.match(secondPartRegex);
-    var matchThirdPart = snowtam.match(thirdPartRegex);
+        var firstGradeEFHK = matchFirstPartEFHK ? matchFirstPartEFHK[1] : '';
+        var secondGradeEFHK = matchSecondPartEFHK ? matchSecondPartEFHK[1] : '';
+        var thirdGradeEFHK = matchThirdPartEFHK ? matchThirdPartEFHK[1] : '';
 
-    var firstGrade = matchFirstPart ? matchFirstPart[1] : '';
-    var secondGrade = matchSecondPart ? matchSecondPart[1] : '';
-    var thirdGrade = matchThirdPart ? matchThirdPart[1] : '';
+        if (firstGradeEFHK) digit1 += ' ' + firstGradeEFHK + ', ';
+        else digit1 += ', ';
 
-    if (firstGrade) digit1 += ' ' + firstGrade + ', ';
-    else digit1 += ', ';
+        if (secondGradeEFHK) digit2 += ' ' + secondGradeEFHK + ', ';
+        else digit2 += ', ';
 
-    if (secondGrade) digit2 += ' ' + secondGrade + ', ';
-    else digit2 += ', ';
+        if (thirdGradeEFHK) digit3 += ' ' + thirdGradeEFHK + '.<br>';
+        else digit3 += '.<br>';
 
-    if (thirdGrade) digit3 += ' ' + thirdGrade + '.<br>';
-    else digit3 += '.<br>';
+    } else {
+        // regional aerodrome
+        var firstPartRegex = /FIRST PART RWYCC (UPGRADED|DOWNGRADED)/;
+        var secondPartRegex = /SECOND PART RWYCC (UPGRADED|DOWNGRADED)/;
+        var thirdPartRegex = /THIRD PART RWYCC (UPGRADED|DOWNGRADED)/;
+        var matchFirstPart = snowtam.match(firstPartRegex);
+        var matchSecondPart = snowtam.match(secondPartRegex);
+        var matchThirdPart = snowtam.match(thirdPartRegex);
+    
+        var firstGrade = matchFirstPart ? matchFirstPart[1] : '';
+        var secondGrade = matchSecondPart ? matchSecondPart[1] : '';
+        var thirdGrade = matchThirdPart ? matchThirdPart[1] : '';
 
+        if (firstGrade) digit1 += ' ' + firstGrade + ', ';
+        else digit1 += ', ';
+
+        if (secondGrade) digit2 += ' ' + secondGrade + ', ';
+        else digit2 += ', ';
+
+        if (thirdGrade) digit3 += ' ' + thirdGrade + '.<br>';
+        else digit3 += '.<br>';
+    }
     rcr += digit1 + digit2 + digit3;
 }
 
@@ -239,14 +262,14 @@ function makeOtherInformation(snowtam) {
         }
     }
 
-    // ice accumulation
+    // contaminant outside of cleared area
     if (snowtam.includes("ICE ACCUMULATION")) {
         rcr += "ICE ACCUMULATION ON EDGES OF CLEARED AREA.<br>"
     }
-    if (snowtam.includes("ICE FORMATION OUTSIDE CLEARED AREA.")) {
+    else if (snowtam.includes("ICE FORMATION OUTSIDE CLEARED AREA")) {
         rcr += "ICE FORMATION OUTSIDE CLEARED AREA.<br>"
     }
-    if (snowtam.includes("COMPACTED SN OUTSIDE CLEARED AREA.")) {
+    if (snowtam.includes("COMPACTED SN OUTSIDE CLEARED AREA")) {
         rcr += "COMPACTED SNOW OUTSIDE CLEARED AREA.<br>"
     }
 }
