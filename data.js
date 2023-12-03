@@ -95,6 +95,8 @@ function makeRWYCC(snowtam) {
         digit1 = match[1];
         digit2 = match[2];
         digit3 = match[3];
+        regex.lastIndex = 0;
+        break;
     }
 
     // downgraded/upgraded values
