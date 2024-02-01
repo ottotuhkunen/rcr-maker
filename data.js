@@ -62,7 +62,9 @@ function makeHeader(snowtam) {
 
     if (match) {
         // runway
-        if (snowtam.includes(" 04L ")) rcr = "RUNWAY CONDITION REPORT AT ";
+        if (snowtam.includes(" 04L ") || snowtam.includes(" 04R ")) {
+            rcr = "RUNWAY CONDITION REPORT AT ";
+        } 
         else rcr = "RUNWAY " + match[3] + " CONDITION REPORT AT ";
         // time
         rcr += match[2] + " UTC.<br>";
