@@ -50,6 +50,7 @@ function generateRCR() {
     makeReducedWidth(snowtam);
     makeOtherInformation(snowtam);
     makeTwyAndApnConditions(snowtam);
+    checkForSmallCoverage();
 
     document.getElementById("rcrOutput").innerHTML = rcr;
     document.getElementById("copyButton").style.visibility = "visible";
@@ -62,7 +63,7 @@ function makeHeader(snowtam) {
 
     if (match) {
         // runway
-        if (snowtam.includes(" 04L ") || snowtam.includes(" 04R ")) {
+        if (snowtam.includes(" 04L ") || snowtam.includes(" 04R ")) { // modified
             rcr = "RUNWAY CONDITION REPORT AT ";
         } 
         else rcr = "RUNWAY " + match[3] + " CONDITION REPORT AT ";
@@ -314,4 +315,10 @@ function copyTextToClipboard() {
     setTimeout(function() {
         aerodromeElement.textContent = header;
     }, 2000);
+}
+
+function checkForSmallCoverage() {
+    if (rcr.includes("DUE TO SMALL COVERAGE") && rcr.includes("100 PERCENT")) {
+        rcr = rcr.replace("100 PERCENT", "LESS THAN 10 PERCENT");
+    }
 }
