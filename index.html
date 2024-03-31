@@ -10,6 +10,7 @@
         <title>RCR maker ❄️</title>
         <link rel="icon" href="./favicon.ico">
         <script type="text/javascript" src="./data.js"></script>
+        <script type="text/javascript" src="./summer.js"></script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     </head>
     <style>
@@ -78,16 +79,45 @@
             line-height: 20px;
             margin-right: 10px;
         }
+        #icaoCode {
+            width: 240px;
+            height: 30px;
+            background-color: #0f4a60;
+            vertical-align: middle;
+            border: none;
+            color: lightgray;
+            cursor: pointer;
+        }
+        #icaoCode option {
+            text-align: center;
+        }
+        table {
+            font-size: 9pt;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #0f4a60;
+            border-collapse: collapse;
+            box-shadow: none;
+            width: 80%;
+            overflow: visible;
+            margin-top: 12px;
+        }
+        td {
+            text-align: left;
+            border: 1px solid gray;
+            background-color: #0f4a60;
+            padding: 4px;
+        }
 
     </style>
     <body>
         <h1>Winter Runway Condition Report</h1>
         <h3>Insert SNOWTAM:</h3>
         <p><a href="https://www.ais.fi/bulletins/efinen-fr.htm" target="_blank">https://www.ais.fi/bulletins/efinen-fr.htm</a></p>
-        <textarea type="text" id="snowtam" rows="10" name="snowtam"></textarea>
+        <textarea type="text" id="snowtam" rows="4" name="snowtam"></textarea>
         <br><br>
         <button onclick="generateRCR();">GENERATE</button>
-        <hr>
+        <br><br>
         <!-- final RCR here -->
         <h3 id="aerodrome" style="display: inline-block; vertical-align: middle;"></h3>
         &ensp;
@@ -95,11 +125,57 @@
         <br>
         <div id="rcrOutput" style="text-align: center"></div>
         <br>
+        <!--
         <div id="warning" class="info" style="visibility: hidden;">
             <img src="./info-symbol.png" alt="i" class="infoSymbol">
             Check RCR content and paste to vATIS ARPT COND field
         </div>
-        <img id="video" src="./rcr-maker.gif" alt="tutorial" class="hover-zoom">
+        -->
+        <hr>
+        <!-- <img id="video" src="./rcr-maker.gif" alt="tutorial" class="hover-zoom"> -->
+        <h1>Summer Runway Condition Report</h1>
+        <select name="icao" id="icaoCode" onchange="loadLatestMETARs(this.value)">
+            <option value="EFHK">ICAO</option>
+            <option value="EFET">EFET - ENONTEKIO</option>
+            <option value="EFHA">EFHA - HALLI</option>
+            <option value="EFHK">EFHK - HELSINKI-VANTAA</option>
+            <option value="EFIV">EFIV - IVALO</option>
+            <option value="EFJO">EFJO - JOENSUU</option>
+            <option value="EFJY">EFJY - JYVASKYLA</option>
+            <option value="EFKE">EFKE - KEMI-TORNIO</option>
+            <option value="EFKI">EFKI - KAJAANI</option>
+            <option value="EFKK">EFKK - KOKKOLA-PIETARSAARI</option>
+            <option value="EFKS">EFKS - KUUSAMO</option>
+            <option value="EFKT">EFKT - KITTILA</option>
+            <option value="EFKU">EFKU - KUOPIO</option>
+            <option value="EFLP">EFLP - LAPPEENRANTA</option>
+            <option value="EFMA">EFMA - MARIEHAMN</option>
+            <option value="EFMI">EFMI - MIKKELI</option>
+            <option value="EFOU">EFOU - OULU</option>
+            <option value="EFPO">EFPO - PORI</option>
+            <option value="EFRO">EFRO - ROVANIEMI</option>
+            <option value="EFSA">EFSA - SAVONLINNA</option>
+            <option value="EFSI">EFSI - SEINAJOKI</option>
+            <option value="EFTP">EFTP - TAMPERE-PIRKKALA</option>
+            <option value="EFTU">EFTU - TURKU</option>
+            <option value="EFUT">EFUT - UTTI</option>
+            <option value="EFVA">EFVA - VAASA</option>
+        </select>
+        <br>
+        <table id="metarsTable" style="display: none;"></table>
+        <div id="afterIcaoSelected" style="visibility: hidden; margin-top: 8px;">
+            <button onclick="conditionSelected('DRY')">DRY</button>
+            <button onclick="conditionSelected('WET')">WET</button>
+            <button onclick="conditionSelected('SLIPPERY WET')">SLIPPERY WET</button>
+            <button onclick="conditionSelected('STANDING WATER')">STANDING WATER</button>
+        </div>
+        <br>
+        <h3 id="aerodromeSummer" style="display: inline-block; vertical-align: middle;"></h3>
+        &ensp;
+        <img id="copyButtonSummer" src="./copySymbol.png" alt="copy" onclick="copyTextToClipboardSummer();" style="width: 24px; vertical-align: middle; visibility: hidden; cursor: pointer;">
+        <br>
+        <div id="rcrOutputSummer" style="text-align: center"></div>
+
     </body>
 </html>
 

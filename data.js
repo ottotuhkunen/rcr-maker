@@ -2,6 +2,7 @@ var rcr;
 var rwycc = [];
 var header;
 
+/*
 document.addEventListener('DOMContentLoaded', () => {
     const videoElement = document.getElementById('video');
     if (videoElement) {
@@ -22,9 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 });
+*/
   
-
 function generateRCR() {
+    rcr = "";
     var snowtamInput = document.getElementById("snowtam");
     var snowtam = snowtamInput.value;
     // Normalize whitespace
@@ -54,8 +56,7 @@ function generateRCR() {
 
     document.getElementById("rcrOutput").innerHTML = rcr;
     document.getElementById("copyButton").style.visibility = "visible";
-    document.getElementById("warning").style.visibility = "visible";
-    document.getElementById("video").style.visibility = "hidden";
+    // document.getElementById("video").style.visibility = "hidden";
 }
 
 function makeHeader(snowtam) {
