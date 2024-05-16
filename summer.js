@@ -51,7 +51,13 @@ function setLatestMETARs(xmlDoc) {
       const cell1 = row.insertCell(0);
       const cell2 = row.insertCell(1);
   
-      const report = latestMETARs[i][0].replace(/SHRA/g, '<strong><span style="color:#e65a5a;">SHRA</span></strong>').replace(/FZRA/g, '<strong><span style="color:#e65a5a;">FZRA</span></strong>').replace(/RA/g, '<strong><span style="color:#e65a5a;">RA</span></strong>');
+      // highlight Rain/Drizzle/Showers
+      const report = latestMETARs[i][0]
+        .replace(/SHRA/g, '<strong><span style="color:#e65a5a;">SHRA</span></strong>')
+        .replace(/FZRA/g, '<strong><span style="color:#e65a5a;">FZRA</span></strong>')
+        .replace(/RA/g, '<strong><span style="color:#e65a5a;">RA</span></strong>')
+        .replace(/SH/g, '<strong><span style="color:#e65a5a;">SH</span></strong>')
+        .replace(/DZ/g, '<strong><span style="color:#e65a5a;">DZ</span></strong>');
 
       cell1.innerHTML = report;
       cell2.innerHTML = latestMETARs[i][1];
