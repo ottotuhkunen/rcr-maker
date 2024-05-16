@@ -79,11 +79,13 @@ function conditionSelected(contaminantType) {
   const currentTimeUTC = hours + minutes + " UTC";
   const rwycc = contaminantInfo[contaminantType];
   
-  summerRcr += currentTimeUTC + `.<br>RUNWAY CONDITION CODES ${rwycc}, ${rwycc}, ${rwycc}.<br>`;
-  summerRcr += `CONTAMINANTS ALL PARTS 100 PERCENT ${contaminantType}.<br>`
-  if (rwycc < 6 && rwycc > 2) {
-    summerRcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN.<br>"
-  }
+  summerRcr += currentTimeUTC + `.<br>RUNWAY CONDITION CODES ${rwycc}, ${rwycc}, ${rwycc}, <br>`;
+
+  if (rwycc == 6) summerRcr += `CONTAMINANTS ALL PARTS DRY`;
+  else summerRcr += `CONTAMINANTS ALL PARTS 100 PERCENT ${contaminantType}`
+
+  if (rwycc < 6 && rwycc > 2) summerRcr += ".<br>TAKEOFF SIGNIFICANT CONTAMINANT THIN";
+
   document.getElementById("rcrOutputSummer").innerHTML = summerRcr;
 
   if (icao) {
@@ -106,7 +108,6 @@ function copyTextToClipboardSummer() {
   document.getElementById("aerodromeSummer").textContent = "copied ";
 
 }
-
 
 const runwayInfo = {
   "EFET": "03",
