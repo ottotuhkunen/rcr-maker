@@ -6,4 +6,4 @@ This tool is used to generate a realistic Runway Condition Report for Finnish ae
 
 - **For flight simulation purposes only!**
 
-<img src="./screenshot1.png" alt="plot">
+<img src="./screenshot.png" alt="plot">
