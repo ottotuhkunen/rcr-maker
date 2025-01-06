@@ -28,7 +28,7 @@
         a {
             color: lightblue;
         }
-        button {
+        .button-style {
             width: 160px;
             height: 30px;
             background-color: #0f4a60;
@@ -36,13 +36,26 @@
             color: lightgray;
             border: none;
             cursor: pointer;
-            margin-top: 4px;
+            margin: 4px;
             border-bottom: 3px solid #5ac5e6;
             transition: border-bottom 0.1s;
         }
-        button:hover {
+        .button-style:hover {
             border-bottom: 3px solid #e65a5a;
         }
+        .button-winter {
+            width: 160px;
+            height: 30px;
+            background-color: #6d2525;
+            vertical-align: middle;
+            color: lightgray;
+            border: none;
+            cursor: pointer;
+            margin: 4px;
+            border-bottom: 3px solid #6d2525;
+            transition: border-bottom 0.1s;
+        }
+
         textarea {
             width: 98%;
             max-width: 600px;
@@ -112,12 +125,13 @@
     </style>
     <body>
         <h1>Winter Runway Condition Report</h1>
-        <h3>Insert SNOWTAM:</h3>
-        <p><a href="https://www.ais.fi/bulletins/efinen-fr.htm" target="_blank">https://www.ais.fi/bulletins/efinen-fr.htm</a></p>
-        <textarea type="text" id="snowtam" rows="4" name="snowtam"></textarea>
-        <br><br>
-        <button onclick="generateRCR();">GENERATE</button>
-        <br><br>
+        <h3>Generate from SNOWTAM:</h3>
+
+        <div id="airportButtons" style="margin-bottom: 20px; max-width: 780px; margin: auto;">
+            <!-- Buttons will be dynamically added here -->
+        </div>
+
+
         <!-- final RCR here -->
         <h3 id="aerodrome" style="display: inline-block; vertical-align: middle;"></h3>
         &ensp;
@@ -125,12 +139,7 @@
         <br>
         <div id="rcrOutput" style="text-align: center"></div>
         <br>
-        <!--
-        <div id="warning" class="info" style="visibility: hidden;">
-            <img src="./info-symbol.png" alt="i" class="infoSymbol">
-            Check RCR content and paste to vATIS ARPT COND field
-        </div>
-        -->
+
         <hr>
         <!-- <img id="video" src="./rcr-maker.gif" alt="tutorial" class="hover-zoom"> -->
         <h1>Summer Runway Condition Report</h1>
@@ -164,10 +173,10 @@
         <br>
         <table id="metarsTable" style="display: none;"></table>
         <div id="afterIcaoSelected" style="visibility: hidden; margin-top: 8px;">
-            <button onclick="conditionSelected('DRY')">DRY</button>
-            <button onclick="conditionSelected('WET')">WET</button>
-            <button onclick="conditionSelected('SLIPPERY WET')">SLIPPERY WET</button>
-            <button onclick="conditionSelected('STANDING WATER')">STANDING WATER</button>
+            <button class="button-style" onclick="conditionSelected('DRY')">DRY</button>
+            <button class="button-style" onclick="conditionSelected('WET')">WET</button>
+            <button class="button-style" onclick="conditionSelected('SLIPPERY WET')">SLIPPERY WET</button>
+            <button class="button-style" onclick="conditionSelected('STANDING WATER')">STANDING WATER</button>
         </div>
         <br>
         <h3 id="aerodromeSummer" style="display: inline-block; vertical-align: middle;"></h3>
@@ -176,7 +185,7 @@
         <br>
         <div id="rcrOutputSummer" style="text-align: center"></div>
 
+        <!-- Hidden textarea to store SNOWTAM data -->
+        <textarea id="snowtam" style="display: none;"></textarea>
     </body>
 </html>
-
-

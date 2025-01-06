@@ -2,29 +2,66 @@ var rcr;
 var rwycc = [];
 var header;
 
-/*
-document.addEventListener('DOMContentLoaded', () => {
-    const videoElement = document.getElementById('video');
-    if (videoElement) {
-      // Get the duration of the video's transition (in milliseconds)
-      const transitionDuration = 500; // 0.5 seconds in milliseconds
-  
-      // Add an event listener for the 'mouseover' event
-      videoElement.addEventListener('mouseover', () => {
-        // Increase the size of the 'video' element here
-  
-        // After the same duration as the transition, scroll to the bottom
-        setTimeout(() => {
-          window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: 'smooth'
-          });
-        }, transitionDuration);
-      });
+async function fetchSnowtamData() {
+    const response = await fetch('https://flyk.com/api/notams.json');
+    const data = await response.json();
+    return data.notams;
+}
+
+async function initializeButtons() {
+    const snowtamData = await fetchSnowtamData();
+    const airports = [
+        "EFET", "EFHA", "EFHK", "EFIV", "EFJO", "EFJY", "EFKE", "EFKI", "EFKK", "EFKS",
+        "EFKT", "EFKU", "EFLP", "EFMA", "EFMI", "EFOU", "EFPO", "EFRO", "EFSA", "EFSI",
+        "EFTP", "EFTU", "EFUT", "EFVA"
+    ];
+
+    const airportButtons = document.getElementById("airportButtons");
+
+    airports.forEach(icao => {
+        const button = document.createElement("button");
+        button.textContent = icao;
+        button.disabled = true; // Initially disable the button
+        button.style.backgroundColor = '#6d2525';
+        button.style.color = 'gray'
+        button.onclick = () => generateRCRForAirport(icao);
+        airportButtons.appendChild(button);
+        button.className = 'button-winter';
+        button.style.cursor = 'not-allowed';
+
+        // Check if there is a SNOWTAM for the airport
+        if (snowtamData[icao]) {
+            const snowtam = snowtamData[icao].find(notam => notam.text.startsWith('SNOWTAM'));
+            if (snowtam) {
+                button.disabled = false; // Enable the button if SNOWTAM is found
+                button.style.backgroundColor = '#0f4a60'; // Set background color to indicate active button
+                button.dataset.snowtam = snowtam.text; // Store the SNOWTAM text in the button's dataset
+                button.dataset.icao = icao;
+                button.style.color = 'white';
+                button.style.cursor = 'pointer';
+                button.style.borderBottom = '3px solid #5ac5e6';
+                button.addEventListener('mouseover', function() {
+                    button.style.borderBottom = '3px solid #e65a5a';
+                });
+                button.addEventListener('mouseout', function() {
+                    button.style.borderBottom = '3px solid #5ac5e6';
+                });
+            }
+        }
+    });
+}
+
+function generateRCRForAirport(icao) {
+    const button = document.querySelector(`button[data-icao="${icao}"]`);
+    if (button) {
+        const snowtam = button.dataset.snowtam;
+        document.getElementById("snowtam").value = snowtam;
+        generateRCR();
+    } else {
+        alert(`No SNOWTAM found for ${icao}`);
     }
-});
-*/
-  
+}
+
 function generateRCR() {
     rcr = "";
     var snowtamInput = document.getElementById("snowtam");
@@ -38,11 +75,11 @@ function generateRCR() {
     if (!snowtam.trim()) {
         const aerodromeElement = document.getElementById("aerodrome");
         aerodromeElement.textContent = "input is empty";
-    
+
         setTimeout(function() {
             aerodromeElement.textContent = "";
         }, 2000);
-    
+
         return;
     }
 
@@ -66,7 +103,7 @@ function makeHeader(snowtam) {
         // runway
         if (snowtam.includes(" 04L ") || snowtam.includes(" 04R ")) { // modified
             rcr = "RUNWAY CONDITION REPORT AT ";
-        } 
+        }
         else rcr = "RUNWAY " + match[3] + " CONDITION REPORT AT ";
         // time
         rcr += match[2] + " UTC.<br>";
@@ -134,7 +171,7 @@ function makeRWYCC(snowtam) {
         var matchFirstPart = snowtam.match(firstPartRegex);
         var matchSecondPart = snowtam.match(secondPartRegex);
         var matchThirdPart = snowtam.match(thirdPartRegex);
-    
+
         var firstGrade = matchFirstPart ? matchFirstPart[1] : '';
         var secondGrade = matchSecondPart ? matchSecondPart[1] : '';
         var thirdGrade = matchThirdPart ? matchThirdPart[1] : '';
@@ -199,14 +236,14 @@ function makeContaminants(snowtam) {
                 rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN.<br>"
             }
         }
-        
+
     } else {
         if (depthValues[1] != "NR") {
             rcr += "CONTAMINANTS FIRST PART 100 PERCENT " + depthValues[1] + " MILLIMETERS " + contaminants[0] + ", SECOND PART 100 PERCENT " + depthValues[1] + " MILLIMETERS " + contaminants[1] + ", THIRD PART 100 PERCENT " + depthValues[1] + " MILLIMETERS " + contaminants[2] + ".<br>";
         } else {
             rcr += "CONTAMINANTS FIRST PART 100 PERCENT " + contaminants[0] + ", SECOND PART 100 PERCENT " + contaminants[1] + ", THIRD PART 100 PERCENT " + contaminants[2] + ".<br>";
         }
-        
+
         if (snowtam.includes("CONTAMINANT THIN DUE TO SMALL COVERAGE")) {
             rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN DUE TO SMALL COVERAGE.<br>"
         }
@@ -293,8 +330,8 @@ function extractDepth(snowtam) {
     }
     if (parts.length > 5) {
         return [
-            getFirstWord(parts[4]), 
-            getFirstWord(parts[5]), 
+            getFirstWord(parts[4]),
+            getFirstWord(parts[5]),
         ];
     } else {
         return [];
@@ -323,3 +360,8 @@ function checkForSmallCoverage() {
         rcr = rcr.replace("100 PERCENT", "LESS THAN 10 PERCENT");
     }
 }
+
+// Add buttons for each airport
+document.addEventListener("DOMContentLoaded", function() {
+    initializeButtons();
+});
