@@ -55,7 +55,6 @@
             border-bottom: 3px solid #6d2525;
             transition: border-bottom 0.1s;
         }
-
         textarea {
             width: 98%;
             max-width: 600px;
@@ -127,10 +126,14 @@
         <h1>Winter Runway Condition Report</h1>
         <h3>Generate from SNOWTAM:</h3>
 
-        <div id="airportButtons" style="margin-bottom: 20px; max-width: 780px; margin: auto;">
+        <div id="airportButtons" style="max-width: 780px; margin: auto; margin-bottom: 20px;">
             <!-- Buttons will be dynamically added here -->
         </div>
 
+        <div id="warning" class="info" style="visibility: visible;">
+            <img src="./info-symbol.png" alt="i" class="infoSymbol">
+            Please, do not add custom text to vATIS. The RCR runway number may be modified according to the Runway-in-Use.
+        </div>
 
         <!-- final RCR here -->
         <h3 id="aerodrome" style="display: inline-block; vertical-align: middle;"></h3>
