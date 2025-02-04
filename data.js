@@ -68,6 +68,9 @@ function generateRCR() {
     var snowtam = snowtamInput.value;
     // Normalize whitespace
     snowtam = snowtam.replace(/\s+/g, ' ').trim();
+    snowtam = snowtam.replace(/NR\/NR\/NR NR\/NR\/NR NR\/NR\/NR/g, 'NR/NR/NR NR/NR/NR ICE/ICE/ICE');
+    // TEMPORARY FIX ABOVE!
+
     snowtamInput.value = snowtam;
 
     console.log(snowtam);
