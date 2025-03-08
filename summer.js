@@ -92,7 +92,9 @@ function conditionSelected(contaminantType) {
 
   if (rwycc < 6 && rwycc > 2) summerRcr += ".<br>TAKEOFF SIGNIFICANT CONTAMINANT THIN";
 
-  document.getElementById("rcrOutputSummer").innerHTML = summerRcr + '.';
+  summerRcr += '.';
+
+  document.getElementById("rcrOutputSummer").innerHTML = summerRcr;
 
   if (icao) {
     document.getElementById("aerodromeSummer").textContent = icao + " ATIS RCR";
