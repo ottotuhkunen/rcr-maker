@@ -3,67 +3,76 @@ let icao = "";
 
 async function loadLatestMETARs(icaoCode) {
   icao = icaoCode;
-    try {
-        const response = await fetch(`https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::avi::observations::latest::iwxxm&icaocode=${icaoCode}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        } else {
-            document.getElementById("copyButtonSummer").style.visibility = "hidden";
-            document.getElementById("aerodromeSummer").textContent = "";
-            document.getElementById("rcrOutputSummer").innerHTML = "";
-            const responseText = await response.text();
-            const parser = new DOMParser();
-            const data = parser.parseFromString(responseText, "application/xml");
-            setLatestMETARs(data);
-        }
-    } catch (error) {
-        console.log('Fetch API error -', error);
+  try {
+    const response = await fetch(`https://api.met.no/weatherapi/tafmetar/1.0/metar.txt?icao=${icaoCode}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    } else {
+      document.getElementById("copyButtonSummer").style.visibility = "hidden";
+      document.getElementById("aerodromeSummer").textContent = "";
+      document.getElementById("rcrOutputSummer").innerHTML = "";
+      const responseText = await response.text();
+      setLatestMETARs(responseText);
     }
+  } catch (error) {
+    console.log('Fetch API error -', error);
+  }
 }
 
-function setLatestMETARs(xmlDoc) { 
-    document.getElementById("rcrOutputSummer").innerHTML = "";
-    var xmlElements = xmlDoc.getElementsByTagName("avi:source");
-    var latestMETARs = [];
+function setLatestMETARs(metarText) { 
+  document.getElementById("rcrOutputSummer").innerHTML = "";
+  const metarLines = metarText.split('\n').filter(line => line.trim() !== '');
+  const latestMETARs = [];
   
-    for (var i = xmlElements.length - 1; i >= 0; i--) {
-      var metar = xmlElements[i].getElementsByTagName("avi:input")[0].textContent;
-      var time = xmlElements[i].getElementsByTagName("avi:processingTime")[0].textContent;
-
-      time = time.replace(/T/g, '&emsp;&emsp;');
-      time = time.replace(/\.\d{3}Z/g, '');
-
-      latestMETARs.push([metar, time]);
+  // Get the last 10 METARs (or fewer if there aren't that many)
+  const recentMetars = metarLines.slice(-10).reverse();
+  
+  for (const metar of recentMetars) {
+    // Extract time from METAR (e.g., "291520Z" from "ENGM 291520Z 23008KT...")
+    const timeMatch = metar.match(/\d{6}Z/);
+    if (timeMatch) {
+      const timeCode = timeMatch[0];
+      const day = timeCode.substring(0, 2);
+      const hour = timeCode.substring(2, 4);
+      const minute = timeCode.substring(4, 6);
+      
+      const formattedTime = `${day} ${hour}:${minute} UTC`;
+      
+      latestMETARs.push([metar, formattedTime]);
+    } else {
+      // If time can't be parsed, just show the METAR with empty time
+      latestMETARs.push([metar, '']);
     }
+  }
 
-    document.getElementById("metarsTable").style.display = "table";
+  document.getElementById("metarsTable").style.display = "table";
   
-    // Clear the existing rows
-    const table = document.getElementById("metarsTable");
-    
-    while (table.rows.length > 0) {
-      table.deleteRow(0);
-    }
+  // Clear the existing rows
+  const table = document.getElementById("metarsTable");
   
-    // Add new rows
-    for (var i = 0; i < Math.min(latestMETARs.length, 8); i++) {
-      const row = table.insertRow(-1);
-      const cell1 = row.insertCell(0);
-      const cell2 = row.insertCell(1);
+  while (table.rows.length > 0) {
+    table.deleteRow(0);
+  }
   
-      // highlight Rain/Drizzle/Showers
-      const report = latestMETARs[i][0]
-        .replace(/SHRA/g, '<strong><span style="color:#e65a5a;">SHRA</span></strong>')
-        .replace(/FZRA/g, '<strong><span style="color:#e65a5a;">FZRA</span></strong>')
-        .replace(/RA/g, '<strong><span style="color:#e65a5a;">RA</span></strong>')
-        .replace(/SH/g, '<strong><span style="color:#e65a5a;">SH</span></strong>')
-        .replace(/DZ/g, '<strong><span style="color:#e65a5a;">DZ</span></strong>');
+  // Add new rows
+  for (var i = 0; i < latestMETARs.length; i++) {
+    const row = table.insertRow(-1);
+    const cell1 = row.insertCell(0);
+    const cell2 = row.insertCell(1);
+  
+    // highlight Rain/Drizzle/Showers
+    const report = latestMETARs[i][0]
+      .replace(/SHRA/g, '<strong><span style="color:#e65a5a;">SHRA</span></strong>')
+      .replace(/FZRA/g, '<strong><span style="color:#e65a5a;">FZRA</span></strong>')
+      .replace(/RA/g, '<strong><span style="color:#e65a5a;">RA</span></strong>')
+      .replace(/SH/g, '<strong><span style="color:#e65a5a;">SH</span></strong>')
+      .replace(/DZ/g, '<strong><span style="color:#e65a5a;">DZ</span></strong>');
 
-      cell1.innerHTML = report;
-      cell2.innerHTML = latestMETARs[i][1];
+    cell1.innerHTML = report;
+    cell2.innerHTML = latestMETARs[i][1];
 
-      document.getElementById("afterIcaoSelected").style.visibility = "visible";
-    }
+    document.getElementById("afterIcaoSelected").style.visibility = "visible";
+  }
 }
 
 function conditionSelected(contaminantType) {
