@@ -79,10 +79,10 @@ function conditionSelected(contaminantType) {
   document.getElementById("metarsTable").style.display = "none";
   document.getElementById("rcrOutputSummer").innerHTML = "";
   summerRcr = "";
-  if (icao == "EFHK") summerRcr = "RUNWAY CONDITION REPORT AT ";
+  if (icao == "EFHK") summerRcr = "RWY @COND_REP AT ";
   else {
     const runway = runwayInfo[icao];
-    summerRcr = `RUNWAY ${runway} CONDITION REPORT AT `;
+    summerRcr = `RWY ${runway} @COND_REP AT `;
   }
 
   const currentTime = new Date();
@@ -94,12 +94,12 @@ function conditionSelected(contaminantType) {
   const currentTimeUTC = hours + minutes + " UTC";
   const rwycc = contaminantInfo[contaminantType];
   
-  summerRcr += currentTimeUTC + `.<br>RUNWAY CONDITION CODES ${rwycc}, ${rwycc}, ${rwycc}, <br>`;
+  summerRcr += currentTimeUTC + `.<br>@RWYCC ${rwycc} , ${rwycc} , ${rwycc}.<br>`;
 
-  if (rwycc == 6) summerRcr += `CONTAMINANTS ALL PARTS DRY`;
-  else summerRcr += `CONTAMINANTS ALL PARTS 100 PERCENT ${contaminantType}`
+  if (rwycc == 6) summerRcr += `ALL PARTS DRY`;
+  else summerRcr += `ALL PARTS 100 @PCT ${contaminantType}`
 
-  if (rwycc < 6 && rwycc > 2) summerRcr += ".<br>TAKEOFF SIGNIFICANT CONTAMINANT THIN";
+  if (rwycc < 5 && rwycc > 2) summerRcr += ".<br>TAKEOFF SIGNIFICANT CONTAMINANT THIN";
 
   summerRcr += '.';
 
@@ -122,7 +122,13 @@ function copyTextToClipboardSummer() {
   document.execCommand("copy");
   document.body.removeChild(textarea);
 
-  document.getElementById("aerodromeSummer").textContent = "copied ";
+  var header = document.getElementById("aerodromeSummer");
+  var originalHeader = header.textContent;
+  header.textContent = "copied ";
+
+  setTimeout(function() {
+    header.textContent = originalHeader;
+  }, 2000);
 
 }
 

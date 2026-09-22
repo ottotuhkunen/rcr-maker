@@ -2,11 +2,26 @@ var rcr;
 var rwycc = [];
 var header;
 
+
 async function fetchSnowtamData() {
     const response = await fetch('https://flyk.com/api/notams.json');
     const data = await response.json();
     return data.notams;
 }
+
+/*
+async function fetchSnowtamData() {
+    // === PLAIN TEXT MOCK DATA FOR TESTING ===
+    return {
+        "EFHK": [
+            { text: "SNOWTAM 2209 EFHK 08311245 04L 6/6/6 NR/NR/NR NR/NR/NR DRY/DRY/DRY 08310741 04R 5/5/5 100/100/100 NR/NR/NR WET/WET/WET 08311252 15 5/5/5 100/100/100 NR/NR/NR WET/WET/WET" }
+        ],
+        "EFOU": [
+            { text: "SNOWTAM 0696 EFOU 08152116 12 2/2/2 100/100/100 05/05/05 STANDING WATER/STANDING WATER/STANDING WATER" }
+        ]
+    };
+}
+*/
 
 async function initializeButtons() {
     const snowtamData = await fetchSnowtamData();
@@ -69,11 +84,8 @@ function generateRCR() {
     // Normalize whitespace
     snowtam = snowtam.replace(/\s+/g, ' ').trim();
     snowtam = snowtam.replace(/NR\/NR\/NR NR\/NR\/NR NR\/NR\/NR/g, 'NR/NR/NR NR/NR/NR ICE/ICE/ICE');
-    // TEMPORARY FIX ABOVE!
 
     snowtamInput.value = snowtam;
-
-    console.log(snowtam);
 
     if (!snowtam.trim()) {
         const aerodromeElement = document.getElementById("aerodrome");
@@ -86,17 +98,106 @@ function generateRCR() {
         return;
     }
 
-    makeHeader(snowtam);
-    makeRWYCC(snowtam);
-    makeContaminants(snowtam);
-    makeReducedWidth(snowtam);
-    makeOtherInformation(snowtam);
-    makeTwyAndApnConditions(snowtam);
-    checkForSmallCoverage();
+    // Check if it's EFHK with multiple runways
+    if (snowtam.includes("EFHK") && snowtam.includes("04L") && snowtam.includes("04R") && snowtam.includes("15")) {
+        let runways = ["04L", "04R", "15"];
+        let finalHtmlOutputs = [];
 
-    document.getElementById("rcrOutput").innerHTML = rcr;
-    document.getElementById("copyButton").style.visibility = "visible";
-    // document.getElementById("video").style.visibility = "hidden";
+        runways.forEach(targetRwy => {
+            let modifiedSnowtam = snowtam;
+
+            // Strip out other runways' data chunks
+            runways.forEach(rwy => {
+                if (rwy !== targetRwy) {
+                    let stripRegex = new RegExp(`(?:\\b\\d{8}\\s+)?\\b${rwy}\\b[\\s\\S]*?(?=(?:\\b\\d{8}\\s+)?\\b(?:04L|04R|15|REMARK)\\b|$)`);
+                    modifiedSnowtam = modifiedSnowtam.replace(stripRegex, "");
+                }
+            });
+
+            // Clean up remarks so this runway only sees its own runway remarks + global remarks
+            let remarkIndex = modifiedSnowtam.indexOf("REMARK");
+            if (remarkIndex !== -1) {
+                let headerPart = modifiedSnowtam.substring(0, remarkIndex);
+                let remarkPart = modifiedSnowtam.substring(remarkIndex);
+
+                let remarkSections = remarkPart.split('/');
+                let filteredSections = remarkSections.filter(sec => {
+                    let trimmed = sec.trim();
+                    if (trimmed === "REMARK" || trimmed === "") return true;
+                    let rwyMention = trimmed.match(/\bRWY\s+(04L|04R|15)\b/);
+                    if (rwyMention) {
+                        return rwyMention[1] === targetRwy;
+                    }
+                    return true; // keep global remarks like CHEMICALLY TREATED, SMALL COVERAGE, etc.
+                });
+                modifiedSnowtam = headerPart + filteredSections.join(" / ");
+            }
+
+            // Run pipeline
+            rcr = "";
+            makeHeader(modifiedSnowtam);
+
+            // Adjust header runway name
+            if (targetRwy === "04R") {
+                rcr = rcr.replace("RWY @COND_REP", "RWY 04R @COND_REP");
+            } else if (targetRwy === "15") {
+                rcr = rcr.replace("RWY @COND_REP", "RWY 15 @COND_REP");
+            } else if (targetRwy === "04L") {
+                rcr = rcr.replace("RWY @COND_REP", "RWY 04L @COND_REP");
+            }
+
+            makeRWYCC(modifiedSnowtam, targetRwy);
+            makeContaminants(modifiedSnowtam);
+            makeReducedWidth(modifiedSnowtam);
+            makeOtherInformation(modifiedSnowtam);
+            makeTwyAndApnConditions(modifiedSnowtam);
+            checkForSmallCoverage();
+
+            // Create individual blocks with individual copy buttons
+            let blockId = "rcr_" + targetRwy;
+            let htmlBlock = `
+                <div style="margin-bottom: 10px; padding-bottom: 12px; border: 1px solid #0f4a60; border-radius: 4px; background: #0f4a60;">
+                    <h3 id="header_${blockId}" style="display: inline-block; vertical-align: middle; padding-right: 8px;">EFHK ${targetRwy} RCR</h3>
+                    <img id="copyButton" src="./copySymbol.png" alt="copy" onclick="copySpecificText('${blockId}', 'EFHK ${targetRwy} RCR')" style="width: 20px; vertical-align: middle; cursor: pointer;">
+                    <div id="${blockId}">${rcr}</div>
+                </div>
+            `;
+            finalHtmlOutputs.push(htmlBlock);
+        });
+
+        document.getElementById("rcrOutput").innerHTML = finalHtmlOutputs.join("");
+        document.getElementById("copyButton").style.visibility = "hidden";
+    } else {
+        // Standard single runway processing for other airports
+        makeHeader(snowtam);
+        makeRWYCC(snowtam);
+        makeContaminants(snowtam);
+        makeReducedWidth(snowtam);
+        makeOtherInformation(snowtam);
+        makeTwyAndApnConditions(snowtam);
+        checkForSmallCoverage();
+
+        document.getElementById("rcrOutput").innerHTML = rcr;
+        document.getElementById("copyButton").style.visibility = "visible";
+    }
+}
+
+// Helper function to handle individual runway copying with feedback
+function copySpecificText(elementId, title) {
+    var textToCopy = document.getElementById(elementId).innerText;
+    var textarea = document.createElement("textarea");
+    textarea.value = textToCopy;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+
+    const header = document.getElementById(`header_${elementId}`);
+    header.textContent = "copied ";
+
+    setTimeout(function() {
+        header.textContent = title;
+    }, 2000);
 }
 
 function makeHeader(snowtam) {
@@ -104,10 +205,10 @@ function makeHeader(snowtam) {
 
     if (match) {
         // runway
-        if (snowtam.includes(" 04L ") || snowtam.includes(" 04R ")) { // modified
-            rcr = "RUNWAY CONDITION REPORT AT ";
+        if (snowtam.includes(" 04L ") || snowtam.includes(" 04R ") || snowtam.includes(" 15 ")) {
+            rcr = "RWY @COND_REP AT ";
         }
-        else rcr = "RUNWAY " + match[3] + " CONDITION REPORT AT ";
+        else rcr = "RWY " + match[3] + " @COND_REP AT ";
         // time
         rcr += match[2] + " UTC.<br>";
     } else {
@@ -118,7 +219,7 @@ function makeHeader(snowtam) {
     const regexAD = /EF[A-Z]{2}/;
     const matchAD = snowtam.match(regexAD);
 
-    if (matchAD) {
+    if (matchAD && matchAD != "EFHK") {
         document.getElementById("aerodrome").textContent = matchAD[0] + " ATIS RCR";
         header = matchAD[0] + " ATIS RCR";
     } else {
@@ -126,8 +227,8 @@ function makeHeader(snowtam) {
     }
 }
 
-function makeRWYCC(snowtam) {
-    rcr += "RUNWAY CONDITION CODES ";
+function makeRWYCC(snowtam, specificRwy = null) {
+    rcr += "@RWYCC ";
     var digit1;
     var digit2;
     var digit3;
@@ -143,27 +244,35 @@ function makeRWYCC(snowtam) {
         break;
     }
 
-    // downgraded/upgraded values
-    if (snowtam.includes(" 04L ")) {
-        // EFHK
-        var firstPartRegexEFHK = /04L (?:FIRST PART )?RWYCC (UPGRADED|DOWNGRADED)/;
-        var secondPartRegexEFHK = /04L (?:SECOND PART )?RWYCC (UPGRADED|DOWNGRADED)/;
-        var thirdPartRegexEFHK = /04L (?:THIRD PART )?RWYCC (UPGRADED|DOWNGRADED)/;
-        var matchFirstPartEFHK = snowtam.match(firstPartRegexEFHK);
-        var matchSecondPartEFHK = snowtam.match(secondPartRegexEFHK);
-        var matchThirdPartEFHK = snowtam.match(thirdPartRegexEFHK);
+    // Determine active runway code dynamically
+    var activeRwy = specificRwy;
+    if (!activeRwy) {
+        if (snowtam.includes(" 04L ")) activeRwy = "04L";
+        else if (snowtam.includes(" 04R ")) activeRwy = "04R";
+        else if (snowtam.includes(" 15 ")) activeRwy = "15";
+    }
 
-        var firstGradeEFHK = matchFirstPartEFHK ? matchFirstPartEFHK[1] : '';
-        var secondGradeEFHK = matchSecondPartEFHK ? matchSecondPartEFHK[1] : '';
-        var thirdGradeEFHK = matchThirdPartEFHK ? matchThirdPartEFHK[1] : '';
+    // downgraded/upgraded values based on active runway
+    if (activeRwy) {
+        var firstPartRegexRwy = new RegExp(`${activeRwy} (?:FIRST PART )?RWYCC (UPGRADED|DOWNGRADED)`);
+        var secondPartRegexRwy = new RegExp(`${activeRwy} (?:SECOND PART )?RWYCC (UPGRADED|DOWNGRADED)`);
+        var thirdPartRegexRwy = new RegExp(`${activeRwy} (?:THIRD PART )?RWYCC (UPGRADED|DOWNGRADED)`);
 
-        if (firstGradeEFHK) digit1 += ' ' + firstGradeEFHK + ', ';
-        else digit1 += ', ';
+        var matchFirstPartRwy = snowtam.match(firstPartRegexRwy);
+        var matchSecondPartRwy = snowtam.match(secondPartRegexRwy);
+        var matchThirdPartRwy = snowtam.match(thirdPartRegexRwy);
 
-        if (secondGradeEFHK) digit2 += ' ' + secondGradeEFHK + ', ';
-        else digit2 += ', ';
+        var firstGradeRwy = matchFirstPartRwy ? matchFirstPartRwy[1] : '';
+        var secondGradeRwy = matchSecondPartRwy ? matchSecondPartRwy[1] : '';
+        var thirdGradeRwy = matchThirdPartRwy ? matchThirdPartRwy[1] : '';
 
-        if (thirdGradeEFHK) digit3 += ' ' + thirdGradeEFHK + '.<br>';
+        if (firstGradeRwy) digit1 += ' ' + firstGradeRwy + ' , ';
+        else digit1 += ' , ';
+
+        if (secondGradeRwy) digit2 += ' ' + secondGradeRwy + ' , ';
+        else digit2 += ' , ';
+
+        if (thirdGradeRwy) digit3 += ' ' + thirdGradeRwy + '.<br>';
         else digit3 += '.<br>';
 
     } else {
@@ -179,11 +288,11 @@ function makeRWYCC(snowtam) {
         var secondGrade = matchSecondPart ? matchSecondPart[1] : '';
         var thirdGrade = matchThirdPart ? matchThirdPart[1] : '';
 
-        if (firstGrade) digit1 += ' ' + firstGrade + ', ';
-        else digit1 += ', ';
+        if (firstGrade) digit1 += ' ' + firstGrade + ' , ';
+        else digit1 += ' , ';
 
-        if (secondGrade) digit2 += ' ' + secondGrade + ', ';
-        else digit2 += ', ';
+        if (secondGrade) digit2 += ' ' + secondGrade + ' , ';
+        else digit2 += ' , ';
 
         if (thirdGrade) digit3 += ' ' + thirdGrade + '.<br>';
         else digit3 += '.<br>';
@@ -202,22 +311,18 @@ function makeContaminants(snowtam) {
         contaminants.push(...contaminantParts); // Add each part separately
     }
 
-    console.log("Contaminant 1:", contaminants[0]);
-    console.log("Contaminant 2:", contaminants[1]);
-    console.log("Contaminant 3:", contaminants[2]);
-
     // depth
     var depthValues = extractDepth(snowtam);
 
     if (contaminants[0] === contaminants[1] && contaminants[1] === contaminants[2]) {
         if (contaminants[0] == "DRY") {
-            rcr += "CONTAMINANTS ALL PARTS DRY.<br>";
+            rcr += "ALL PARTS DRY.<br>";
         }
         else {
             if (depthValues[0] != "NR") {
-                rcr += "CONTAMINANTS ALL PARTS " + depthValues[0] + " PERCENT ";
+                rcr += "ALL PARTS " + depthValues[0] + " @PCT ";
             } else {
-                rcr += "CONTAMINANTS ALL PARTS 100 PERCENT ";
+                rcr += "ALL PARTS 100 @PCT ";
             }
             if (depthValues[1] != "NR") {
                 rcr += depthValues[1] + " MILLIMETERS " + contaminants[0] + ".<br>";
@@ -242,9 +347,9 @@ function makeContaminants(snowtam) {
 
     } else {
         if (depthValues[1] != "NR") {
-            rcr += "CONTAMINANTS FIRST PART 100 PERCENT " + depthValues[1] + " MILLIMETERS " + contaminants[0] + ", SECOND PART 100 PERCENT " + depthValues[1] + " MILLIMETERS " + contaminants[1] + ", THIRD PART 100 PERCENT " + depthValues[1] + " MILLIMETERS " + contaminants[2] + ".<br>";
+            rcr += "@1ST PART 100 @PCT " + depthValues[1] + " MILLIMETERS " + contaminants[0] + ", @2ND PART 100 @PCT " + depthValues[1] + " MILLIMETERS " + contaminants[1] + ", .@3RD PART 100 @PCT " + depthValues[1] + " MILLIMETERS " + contaminants[2] + ".<br>";
         } else {
-            rcr += "CONTAMINANTS FIRST PART 100 PERCENT " + contaminants[0] + ", SECOND PART 100 PERCENT " + contaminants[1] + ", THIRD PART 100 PERCENT " + contaminants[2] + ".<br>";
+            rcr += "@1ST PART 100 @PCT " + contaminants[0] + ", @2ND PART 100 @PCT " + contaminants[1] + ", @3RD PART 100 @PCT " + contaminants[2] + ".<br>";
         }
 
         if (snowtam.includes("CONTAMINANT THIN DUE TO SMALL COVERAGE")) {
@@ -359,8 +464,8 @@ function copyTextToClipboard() {
 }
 
 function checkForSmallCoverage() {
-    if (rcr.includes("DUE TO SMALL COVERAGE") && rcr.includes("100 PERCENT")) {
-        rcr = rcr.replace("100 PERCENT", "LESS THAN 10 PERCENT");
+    if (rcr.includes("DUE TO SMALL COVERAGE") && rcr.includes("100 @PCT")) {
+        rcr = rcr.replace("100 @PCT", "LESS THAN 10 @PCT");
     }
 }
 

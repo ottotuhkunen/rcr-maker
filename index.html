@@ -15,7 +15,6 @@
     </head>
     <style>
         body {
-            user-select: none;
             font-family: sans-serif;
             font-weight: 400;
             background-color: #083344;
@@ -124,7 +123,6 @@
     </style>
     <body>
         <h1>Winter Runway Condition Report</h1>
-        <h3>Generate from SNOWTAM:</h3>
 
         <div id="airportButtons" style="max-width: 780px; margin: auto; margin-bottom: 20px;">
             <!-- Buttons will be dynamically added here -->
@@ -138,9 +136,10 @@
         <!-- final RCR here -->
         <h3 id="aerodrome" style="display: inline-block; vertical-align: middle;"></h3>
         &ensp;
-        <img id="copyButton" src="./copySymbol.png" alt="copy" onclick="copyTextToClipboard();" style="width: 24px; vertical-align: middle; visibility: hidden; cursor: pointer;">
+        <img id="copyButton" src="./copySymbol.png" alt="copy" onclick="copyTextToClipboard();" style="width: 20px; vertical-align: middle; visibility: hidden; cursor: pointer;">
         <br>
         <div id="rcrOutput" style="text-align: center"></div>
+
         <br>
 
         <hr>
@@ -184,9 +183,9 @@
         <br>
         <h3 id="aerodromeSummer" style="display: inline-block; vertical-align: middle;"></h3>
         &ensp;
-        <img id="copyButtonSummer" src="./copySymbol.png" alt="copy" onclick="copyTextToClipboardSummer();" style="width: 24px; vertical-align: middle; visibility: hidden; cursor: pointer;">
+        <img id="copyButtonSummer" src="./copySymbol.png" alt="copy" onclick="copyTextToClipboardSummer();" style="width: 20px; vertical-align: middle; visibility: hidden; cursor: pointer;">
         <br>
-        <div id="rcrOutputSummer" style="text-align: center"></div>
+        <div id="rcrOutputSummer" style="text-align: center; padding-bottom: 14px;"></div>
 
         <!-- Hidden textarea to store SNOWTAM data -->
         <textarea id="snowtam" style="display: none;"></textarea>
