@@ -2,34 +2,39 @@ var rcr;
 var rwycc = [];
 var header;
 
-
 async function fetchSnowtamData() {
-    const response = await fetch('https://flyk.com/api/notams.json');
-    const data = await response.json();
-    return data.notams;
-}
+    const airports = Object.keys(runwayInfo);
+    const snowtamData = {};
 
-/*
-async function fetchSnowtamData() {
-    // === PLAIN TEXT MOCK DATA FOR TESTING ===
-    return {
-        "EFHK": [
-            { text: "SNOWTAM 2209 EFHK 08311245 04L 6/6/6 NR/NR/NR NR/NR/NR DRY/DRY/DRY 08310741 04R 5/5/5 100/100/100 NR/NR/NR WET/WET/WET 08311252 15 5/5/5 100/100/100 NR/NR/NR WET/WET/WET" }
-        ],
-        "EFOU": [
-            { text: "SNOWTAM 0696 EFOU 08152116 12 2/2/2 100/100/100 05/05/05 STANDING WATER/STANDING WATER/STANDING WATER" }
-        ]
-    };
+    // Fetch all airports concurrently to minimize loading time
+    const promises = airports.map(async icao => {
+        try {
+            const response = await fetch(`https://api.sky.fintraffic.fi/api/airspace/snowtam?ICAO=${icao}`);
+            const json = await response.json();
+
+            // Check if SNOWTAM records exist for this airport
+            if (json && json.data && json.data.length > 0) {
+                const rawMsg = json.data[0].frmtdsnowtammsg || "";
+                // Clean up escaped line breaks and normalize whitespace
+                const cleanMsg = rawMsg.replace(/\\r\\n/g, ' ').replace(/\r\n/g, ' ').replace(/\s+/g, ' ').trim();
+
+                // Ensure it matches the expected structure for the rest of your script
+                const formattedText = cleanMsg.startsWith('SNOWTAM') ? cleanMsg : `SNOWTAM ${cleanMsg}`;
+
+                snowtamData[icao] = [{ text: formattedText }];
+            }
+        } catch (error) {
+            console.error(`Failed to fetch SNOWTAM for ${icao}:`, error);
+        }
+    });
+
+    await Promise.all(promises);
+    return snowtamData;
 }
-*/
 
 async function initializeButtons() {
     const snowtamData = await fetchSnowtamData();
-    const airports = [
-        "EFET", "EFHA", "EFHK", "EFIV", "EFJO", "EFJY", "EFKE", "EFKI", "EFKK", "EFKS",
-        "EFKT", "EFKU", "EFLP", "EFMA", "EFMI", "EFOU", "EFPO", "EFRO", "EFSA", "EFSI",
-        "EFTP", "EFTU", "EFUT", "EFVA"
-    ];
+    const airports = Object.keys(runwayInfo);
 
     const airportButtons = document.getElementById("airportButtons");
 
@@ -38,7 +43,7 @@ async function initializeButtons() {
         button.textContent = icao;
         button.disabled = true; // Initially disable the button
         button.style.backgroundColor = '#6d2525';
-        button.style.color = 'gray'
+        button.style.color = 'gray';
         button.onclick = () => generateRCRForAirport(icao);
         airportButtons.appendChild(button);
         button.className = 'button-winter';
@@ -46,7 +51,7 @@ async function initializeButtons() {
 
         // Check if there is a SNOWTAM for the airport
         if (snowtamData[icao]) {
-            const snowtam = snowtamData[icao].find(notam => notam.text.startsWith('SNOWTAM'));
+            const snowtam = snowtamData[icao].find(notam => notam.text.includes(icao) || notam.text.startsWith('SNOWTAM'));
             if (snowtam) {
                 button.disabled = false; // Enable the button if SNOWTAM is found
                 button.style.backgroundColor = '#0f4a60'; // Set background color to indicate active button
@@ -301,66 +306,54 @@ function makeRWYCC(snowtam, specificRwy = null) {
 }
 
 function makeContaminants(snowtam) {
-    var regex = /((?:DRY SNOW ON TOP OF ICE|WET SNOW ON TOP OF ICE|DRY SNOW ON TOP OF COMPACTED SNOW|WET SNOW ON TOP OF COMPACTED SNOW|WATER ON TOP OF COMPACTED SNOW|SLIPPERY WET|DRY SNOW|WET SNOW|COMPACTED SNOW|WET ICE|ICE|DRY|FROST|WET|SLUSH|STANDING WATER)(?:\/(?:DRY SNOW ON TOP OF ICE|WET SNOW ON TOP OF ICE|DRY SNOW ON TOP OF COMPACTED SNOW|WET SNOW ON TOP OF COMPACTED SNOW|WATER ON TOP OF COMPACTED SNOW|SLIPPERY WET|DRY SNOW|WET SNOW|COMPACTED SNOW|WET ICE|ICE|DRY|FROST|WET|SLUSH|STANDING WATER))*)/g;
+    // Find all slash-separated triplets in the message (e.g., "NR/NR/WET" or "10/10/10")
+    // SNOWTAM typically has triplets for: RWYCC, Extent, Depth, Contaminant
+    const triplets = snowtam.match(/\b([A-Z0-9]+\/[A-Z0-9]+\/[A-Z0-9]+)\b/g);
 
-    var match;
-    var contaminants = [];
+    let partsContaminants = ["NOT REPORTED", "NOT REPORTED", "NOT REPORTED"];
+    let partsExtent = ["100", "100", "100"]; // default or extracted extent
+    let partsDepth = ["NR", "NR", "NR"];
 
-    while ((match = regex.exec(snowtam)) !== null) {
-        var contaminantParts = match[0].trim().split('/'); // Split contaminants by '/'
-        contaminants.push(...contaminantParts); // Add each part separately
+    if (triplets && triplets.length >= 4) {
+        // Typically: [0] is RWYCC, [1] is Extent, [2] is Depth, [3] is Contaminant type
+        // (Or adjust indices based on whether depth/extent are present)
+        const extentParts = triplets[1].split('/');
+        const depthParts = triplets[2].split('/');
+        const contParts = triplets[3].split('/');
+
+        partsExtent = extentParts.map(p => p === "NR" ? "100" : p);
+        partsDepth = depthParts.map(p => p === "NR" ? "NR" : p);
+        partsContaminants = contParts.map(p => p === "NR" ? "NOT REPORTED" : p);
     }
 
-    // depth
-    var depthValues = extractDepth(snowtam);
-
-    if (contaminants[0] === contaminants[1] && contaminants[1] === contaminants[2]) {
-        if (contaminants[0] == "DRY") {
+    // Check if all parts are identical
+    if (partsContaminants[0] === partsContaminants[1] && partsContaminants[1] === partsContaminants[2]) {
+        if (partsContaminants[0] === "DRY") {
             rcr += "ALL PARTS DRY.<br>";
-        }
-        else {
-            if (depthValues[0] != "NR") {
-                rcr += "ALL PARTS " + depthValues[0] + " @PCT ";
-            } else {
-                rcr += "ALL PARTS 100 @PCT ";
-            }
-            if (depthValues[1] != "NR") {
-                rcr += depthValues[1] + " MILLIMETERS " + contaminants[0] + ".<br>";
-            } else {
-                rcr += contaminants[0] + ".<br>";
-            }
-
-            if (snowtam.includes("CHEMICALLY TREATED")) {
-                rcr += "RUNWAY CHEMICALLY TREATED.<br>"
-            }
-
-            if (snowtam.includes("CONTAMINANT THIN DUE TO SMALL COVERAGE")) {
-                rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN DUE TO SMALL COVERAGE.<br>"
-            }
-            else if (snowtam.includes("CONTAMINANT DRY DUE TO SMALL COVERAGE")) {
-                rcr += "TAKEOFF SIGNIFICANT CONTAMINANT DRY DUE TO SMALL COVERAGE.<br>"
-            }
-            else if (snowtam.includes("CONTAMINANT THIN")) {
-                rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN.<br>"
-            }
-        }
-
-    } else {
-        if (depthValues[1] != "NR") {
-            rcr += "@1ST PART 100 @PCT " + depthValues[1] + " MILLIMETERS " + contaminants[0] + ", @2ND PART 100 @PCT " + depthValues[1] + " MILLIMETERS " + contaminants[1] + ", .@3RD PART 100 @PCT " + depthValues[1] + " MILLIMETERS " + contaminants[2] + ".<br>";
         } else {
-            rcr += "@1ST PART 100 @PCT " + contaminants[0] + ", @2ND PART 100 @PCT " + contaminants[1] + ", @3RD PART 100 @PCT " + contaminants[2] + ".<br>";
+            rcr += `ALL PARTS ${partsExtent[0]} @PCT `;
+            if (partsDepth[0] !== "NR") {
+                rcr += `${partsDepth[0]} MILLIMETERS ${partsContaminants[0]}.<br>`;
+            } else {
+                rcr += `${partsContaminants[0]}.<br>`;
+            }
         }
+    } else {
+        // Output each part individually with its correct extent, depth, and contaminant
+        rcr += `@1ST PART ${partsExtent[0]} @PCT ${partsDepth[0] !== "NR" ? partsDepth[0] + " MILLIMETERS " : ""}${partsContaminants[0]}, `;
+        rcr += `@2ND PART ${partsExtent[1]} @PCT ${partsDepth[1] !== "NR" ? partsDepth[1] + " MILLIMETERS " : ""}${partsContaminants[1]}, `;
+        rcr += `@3RD PART ${partsExtent[2]} @PCT ${partsDepth[2] !== "NR" ? partsDepth[2] + " MILLIMETERS " : ""}${partsContaminants[2]}.<br>`;
+    }
 
-        if (snowtam.includes("CONTAMINANT THIN DUE TO SMALL COVERAGE")) {
-            rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN DUE TO SMALL COVERAGE.<br>"
-        }
-        else if (snowtam.includes("CONTAMINANT DRY DUE TO SMALL COVERAGE")) {
-            rcr += "TAKEOFF SIGNIFICANT CONTAMINANT DRY DUE TO SMALL COVERAGE.<br>"
-        }
-        else if (snowtam.includes("CONTAMINANT THIN")) {
-            rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN.<br>"
-        }
+    // Append standard remark flags if present
+    if (snowtam.includes("CONTAMINANT THIN DUE TO SMALL COVERAGE")) {
+        rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN DUE TO SMALL COVERAGE.<br>";
+    } else if (snowtam.includes("CONTAMINANT UNRESOLVED")) {
+        rcr += "TAKEOFF SIGNIFICANT CONTAMINANT UNRESOLVED.<br>";
+    } else if (snowtam.includes("CONTAMINANT DRY DUE TO SMALL COVERAGE")) {
+        rcr += "TAKEOFF SIGNIFICANT CONTAMINANT DRY DUE TO SMALL COVERAGE.<br>";
+    } else if (snowtam.includes("CONTAMINANT THIN")) {
+        rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN.<br>";
     }
 }
 
@@ -369,7 +362,7 @@ function makeReducedWidth(snowtam) {
     var match = snowtam.match(regex);
 
     if (match) {
-        rcr += "REDUCED WIDTH " + match[1] + " METERS.<br>"
+        rcr += "REDUCED WIDTH " + match[1] + " METERS.<br>";
     }
 }
 
@@ -389,13 +382,12 @@ function makeTwyAndApnConditions(snowtam) {
     if (apronsMatch) {
         rcr += "APRON CONDITIONS " + apronsCondition + ".<br>";
     }
-
 }
 
 function makeOtherInformation(snowtam) {
     // drifting snow
     if (snowtam.includes("DRIFTING SNOW")) {
-        rcr += "DRIFTING SNOW. "
+        rcr += "DRIFTING SNOW. ";
     }
 
     // snowbanks
@@ -404,7 +396,7 @@ function makeOtherInformation(snowtam) {
 
     if (match && match[1]) {
         var snowBankNumber = match[1];
-        rcr += "SNOW BANKS LEFT " + snowBankNumber + " METERS RIGHT " + snowBankNumber + " METERS FROM CENTERLINE.<br>"
+        rcr += "SNOW BANKS LEFT " + snowBankNumber + " METERS RIGHT " + snowBankNumber + " METERS FROM CENTERLINE.<br>";
     }
 
     // different snowbanks
@@ -415,19 +407,19 @@ function makeOtherInformation(snowtam) {
 
     if (matchLeft && matchLeft[1]) {
         if (matchRight && matchRight[1]) {
-            rcr += "SNOW BANKS LEFT " + matchLeft[1] + " METERS RIGHT " + matchRight[1] + " METERS FROM CENTERLINE.<br>"
+            rcr += "SNOW BANKS LEFT " + matchLeft[1] + " METERS RIGHT " + matchRight[1] + " METERS FROM CENTERLINE.<br>";
         }
     }
 
     // contaminant outside of cleared area
     if (snowtam.includes("ICE ACCUMULATION")) {
-        rcr += "ICE ACCUMULATION ON EDGES OF CLEARED AREA.<br>"
+        rcr += "ICE ACCUMULATION ON EDGES OF CLEARED AREA.<br>";
     }
     else if (snowtam.includes("ICE FORMATION OUTSIDE CLEARED AREA")) {
-        rcr += "ICE FORMATION OUTSIDE CLEARED AREA.<br>"
+        rcr += "ICE FORMATION OUTSIDE CLEARED AREA.<br>";
     }
     if (snowtam.includes("COMPACTED SN OUTSIDE CLEARED AREA")) {
-        rcr += "COMPACTED SNOW OUTSIDE CLEARED AREA.<br>"
+        rcr += "COMPACTED SNOW OUTSIDE CLEARED AREA.<br>";
     }
 }
 
@@ -466,6 +458,10 @@ function copyTextToClipboard() {
 function checkForSmallCoverage() {
     if (rcr.includes("DUE TO SMALL COVERAGE") && rcr.includes("100 @PCT")) {
         rcr = rcr.replace("100 @PCT", "LESS THAN 10 @PCT");
+    }
+
+    if (rcr && rcr.includes("undefined")) {
+        rcr = rcr.replaceAll("undefined", "NOT REPORTED");
     }
 }
 
