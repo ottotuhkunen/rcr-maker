@@ -306,24 +306,57 @@ function makeRWYCC(snowtam, specificRwy = null) {
 }
 
 function makeContaminants(snowtam) {
-    // Find all slash-separated triplets in the message (e.g., "NR/NR/WET" or "10/10/10")
-    // SNOWTAM typically has triplets for: RWYCC, Extent, Depth, Contaminant
-    const triplets = snowtam.match(/\b([A-Z0-9]+\/[A-Z0-9]+\/[A-Z0-9]+)\b/g);
+    // Allowed contaminant values (English only, plus NR) sorted by length descending to match multi-word phrases correctly
+    const allowedContaminants = [
+        "DRY SNOW ON TOP OF COMPACTED SNOW",
+        "DRY SNOW ON TOP OF ICE",
+        "WATER ON TOP OF COMPACTED SNOW",
+        "WET SNOW ON TOP OF COMPACTED SNOW",
+        "WET SNOW ON TOP OF ICE",
+        "COMPACTED SNOW",
+        "DRY SNOW",
+        "STANDING WATER",
+        "WET ICE",
+        "WET SNOW",
+        "FROST",
+        "ICE",
+        "SLUSH",
+        "DRY",
+        "WET",
+        "NR"
+    ];
 
     let partsContaminants = ["NOT REPORTED", "NOT REPORTED", "NOT REPORTED"];
-    let partsExtent = ["100", "100", "100"]; // default or extracted extent
+    let partsExtent = ["100", "100", "100"];
     let partsDepth = ["NR", "NR", "NR"];
 
-    if (triplets && triplets.length >= 4) {
-        // Typically: [0] is RWYCC, [1] is Extent, [2] is Depth, [3] is Contaminant type
-        // (Or adjust indices based on whether depth/extent are present)
-        const extentParts = triplets[1].split('/');
-        const depthParts = triplets[2].split('/');
-        const contParts = triplets[3].split('/');
+    // Find all numeric or NR triplets (e.g., 3/3/3, 100/100/100, NR/NR/NR)
+    const numTriplets = snowtam.match(/\b(\d+|NR)\s*\/\s*(\d+|NR)\s*\/\s*(\d+|NR)\b/g);
 
-        partsExtent = extentParts.map(p => p === "NR" ? "100" : p);
-        partsDepth = depthParts.map(p => p === "NR" ? "NR" : p);
-        partsContaminants = contParts.map(p => p === "NR" ? "NOT REPORTED" : p);
+    if (numTriplets) {
+        if (numTriplets.length >= 2) {
+            const extentParts = numTriplets[1].split(/\s*\/\s*/);
+            partsExtent = extentParts.map(p => p === "NR" ? "100" : p);
+        }
+        if (numTriplets.length >= 3) {
+            const depthParts = numTriplets[2].split(/\s*\/\s*/);
+            partsDepth = depthParts.map(p => p === "NR" ? "NR" : p);
+        }
+    }
+
+    // Build global regex for contaminants allowing flexible spacing around slashes
+    const singleContamRegex = allowedContaminants.join('|');
+    const tripletRegex = new RegExp(`(${singleContamRegex})\\s*\/\\s*(${singleContamRegex})\\s*\/\\s*(${singleContamRegex})`, 'ig');
+
+    // Find all matching contaminant triplets and pick the last one (skipping depth NR/NR/NR if present earlier)
+    const matches = [...snowtam.matchAll(tripletRegex)];
+    if (matches.length > 0) {
+        const contMatch = matches[matches.length - 1];
+        partsContaminants = [
+            contMatch[1].trim().toUpperCase() === "NR" ? "NOT REPORTED" : contMatch[1].trim(),
+            contMatch[2].trim().toUpperCase() === "NR" ? "NOT REPORTED" : contMatch[2].trim(),
+            contMatch[3].trim().toUpperCase() === "NR" ? "NOT REPORTED" : contMatch[3].trim()
+        ];
     }
 
     // Check if all parts are identical
