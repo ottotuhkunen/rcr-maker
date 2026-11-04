@@ -119,7 +119,6 @@ function generateRCR() {
                 }
             });
 
-            // Clean up remarks so this runway only sees its own runway remarks + global remarks
             let remarkIndex = modifiedSnowtam.indexOf("REMARK");
             if (remarkIndex !== -1) {
                 let headerPart = modifiedSnowtam.substring(0, remarkIndex);
@@ -306,7 +305,6 @@ function makeRWYCC(snowtam, specificRwy = null) {
 }
 
 function makeContaminants(snowtam) {
-    // Allowed contaminant values (English only, plus NR) sorted by length descending to match multi-word phrases correctly
     const allowedContaminants = [
         "DRY SNOW ON TOP OF COMPACTED SNOW",
         "DRY SNOW ON TOP OF ICE",
@@ -344,11 +342,10 @@ function makeContaminants(snowtam) {
         }
     }
 
-    // Build global regex for contaminants allowing flexible spacing around slashes
     const singleContamRegex = allowedContaminants.join('|');
     const tripletRegex = new RegExp(`(${singleContamRegex})\\s*\/\\s*(${singleContamRegex})\\s*\/\\s*(${singleContamRegex})`, 'ig');
 
-    // Find all matching contaminant triplets and pick the last one (skipping depth NR/NR/NR if present earlier)
+    // Find all matching contaminant triplets
     const matches = [...snowtam.matchAll(tripletRegex)];
     if (matches.length > 0) {
         const contMatch = matches[matches.length - 1];
@@ -372,21 +369,21 @@ function makeContaminants(snowtam) {
             }
         }
     } else {
-        // Output each part individually with its correct extent, depth, and contaminant
+        // extent, depth, and contaminant
         rcr += `@1ST PART ${partsExtent[0]} @PCT ${partsDepth[0] !== "NR" ? partsDepth[0] + " MILLIMETERS " : ""}${partsContaminants[0]}, `;
         rcr += `@2ND PART ${partsExtent[1]} @PCT ${partsDepth[1] !== "NR" ? partsDepth[1] + " MILLIMETERS " : ""}${partsContaminants[1]}, `;
         rcr += `@3RD PART ${partsExtent[2]} @PCT ${partsDepth[2] !== "NR" ? partsDepth[2] + " MILLIMETERS " : ""}${partsContaminants[2]}.<br>`;
     }
 
-    // Append standard remark flags if present
+    // standard remarks
     if (snowtam.includes("CONTAMINANT THIN DUE TO SMALL COVERAGE")) {
-        rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN DUE TO SMALL COVERAGE.<br>";
+        rcr += "@TKOF_SIG_CONT THIN DUE TO SMALL COVERAGE.<br>";
     } else if (snowtam.includes("CONTAMINANT UNRESOLVED")) {
-        rcr += "TAKEOFF SIGNIFICANT CONTAMINANT UNRESOLVED.<br>";
+        rcr += "@TKOF_SIG_CONT UNRESOLVED.<br>";
     } else if (snowtam.includes("CONTAMINANT DRY DUE TO SMALL COVERAGE")) {
-        rcr += "TAKEOFF SIGNIFICANT CONTAMINANT DRY DUE TO SMALL COVERAGE.<br>";
+        rcr += "@TKOF_SIG_CONT DRY DUE TO SMALL COVERAGE.<br>";
     } else if (snowtam.includes("CONTAMINANT THIN")) {
-        rcr += "TAKEOFF SIGNIFICANT CONTAMINANT THIN.<br>";
+        rcr += "@TKOF_SIG_CONT THIN.<br>";
     }
 }
 
@@ -410,10 +407,10 @@ function makeTwyAndApnConditions(snowtam) {
     var apronsCondition = apronsMatch ? apronsMatch[1] : '';
 
     if (twysMatch) {
-        rcr += "TAXIWAY CONDITIONS " + twysCondition + ".<br>";
+        rcr += "@TWY_COND " + twysCondition + ".<br>";
     }
     if (apronsMatch) {
-        rcr += "APRON CONDITIONS " + apronsCondition + ".<br>";
+        rcr += "@APN_COND " + apronsCondition + ".<br>";
     }
 }
 
@@ -448,7 +445,7 @@ function makeOtherInformation(snowtam) {
     if (snowtam.includes("ICE ACCUMULATION")) {
         rcr += "ICE ACCUMULATION ON EDGES OF CLEARED AREA.<br>";
     }
-    else if (snowtam.includes("ICE FORMATION OUTSIDE CLEARED AREA")) {
+    if (snowtam.includes("ICE FORMATION OUTSIDE CLEARED AREA")) {
         rcr += "ICE FORMATION OUTSIDE CLEARED AREA.<br>";
     }
     if (snowtam.includes("COMPACTED SN OUTSIDE CLEARED AREA")) {
