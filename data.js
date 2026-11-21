@@ -159,11 +159,14 @@ function generateRCR() {
 
             // Create individual blocks with individual copy buttons
             let blockId = "rcr_" + targetRwy;
+            const cleanRcr = String(rcr ?? '')
+                .replace(/\r?\n+/g, ' ')
+                .trim();
             let htmlBlock = `
                 <div style="margin-bottom: 10px; padding-bottom: 12px; border: 1px solid #0f4a60; border-radius: 4px; background: #0f4a60;">
                     <h3 id="header_${blockId}" style="display: inline-block; vertical-align: middle; padding-right: 8px;">EFHK ${targetRwy} RCR</h3>
                     <img id="copyButton" src="./copySymbol.png" alt="copy" onclick="copySpecificText('${blockId}', 'EFHK ${targetRwy} RCR')" style="width: 20px; vertical-align: middle; cursor: pointer;">
-                    <div id="${blockId}">${rcr}</div>
+                    <div id="${blockId}">${cleanRcr}</div>
                 </div>
             `;
             finalHtmlOutputs.push(htmlBlock);
@@ -188,7 +191,9 @@ function generateRCR() {
 
 // Helper function to handle individual runway copying with feedback
 function copySpecificText(elementId, title) {
-    var textToCopy = document.getElementById(elementId).innerText;
+    var rawHtml = document.getElementById(elementId).innerHTML;
+    var textToCopy = rawHtml.replace(/<br\s*\/?>/gi, ' ');
+
     var textarea = document.createElement("textarea");
     textarea.value = textToCopy;
     document.body.appendChild(textarea);
