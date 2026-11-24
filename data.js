@@ -368,16 +368,16 @@ function makeContaminants(snowtam) {
         } else {
             rcr += `ALL PARTS ${partsExtent[0]} @PCT `;
             if (partsDepth[0] !== "NR") {
-                rcr += `${partsDepth[0]} MILLIMETERS ${partsContaminants[0]}.<br>`;
+                rcr += `${partsDepth[0]} @MM ${partsContaminants[0]}.<br>`;
             } else {
                 rcr += `${partsContaminants[0]}.<br>`;
             }
         }
     } else {
         // extent, depth, and contaminant
-        rcr += `@1ST PART ${partsExtent[0]} @PCT ${partsDepth[0] !== "NR" ? partsDepth[0] + " MILLIMETERS " : ""}${partsContaminants[0]}, `;
-        rcr += `@2ND PART ${partsExtent[1]} @PCT ${partsDepth[1] !== "NR" ? partsDepth[1] + " MILLIMETERS " : ""}${partsContaminants[1]}, `;
-        rcr += `@3RD PART ${partsExtent[2]} @PCT ${partsDepth[2] !== "NR" ? partsDepth[2] + " MILLIMETERS " : ""}${partsContaminants[2]}.<br>`;
+        rcr += `@1ST PART ${partsExtent[0]} @PCT ${partsDepth[0] !== "NR" ? partsDepth[0] + " @MM " : ""}${partsContaminants[0]}, `;
+        rcr += `@2ND PART ${partsExtent[1]} @PCT ${partsDepth[1] !== "NR" ? partsDepth[1] + " @MM " : ""}${partsContaminants[1]}, `;
+        rcr += `@3RD PART ${partsExtent[2]} @PCT ${partsDepth[2] !== "NR" ? partsDepth[2] + " @MM " : ""}${partsContaminants[2]}.<br>`;
     }
 
     // standard remarks
@@ -431,7 +431,7 @@ function makeOtherInformation(snowtam) {
 
     if (match && match[1]) {
         var snowBankNumber = match[1];
-        rcr += "SNOW BANKS LEFT " + snowBankNumber + " METERS RIGHT " + snowBankNumber + " METERS FROM CENTERLINE.<br>";
+        rcr += "SNOW BANKS LEFT " + snowBankNumber + " METERS RIGHT " + snowBankNumber + " METERS FROM @CL.<br>";
     }
 
     // different snowbanks
@@ -442,7 +442,7 @@ function makeOtherInformation(snowtam) {
 
     if (matchLeft && matchLeft[1]) {
         if (matchRight && matchRight[1]) {
-            rcr += "SNOW BANKS LEFT " + matchLeft[1] + " METERS RIGHT " + matchRight[1] + " METERS FROM CENTERLINE.<br>";
+            rcr += "SNOW BANKS LEFT " + matchLeft[1] + " METERS RIGHT " + matchRight[1] + " METERS FROM @CL.<br>";
         }
     }
 
@@ -496,7 +496,12 @@ function checkForSmallCoverage() {
     }
 
     if (rcr && rcr.includes("undefined")) {
-        rcr = rcr.replaceAll("undefined", "NOT REPORTED");
+        const rwyccIndex = rcr.indexOf("@RWYCC");
+        if (rwyccIndex !== -1) {
+            rcr = rcr.substring(0, rwyccIndex) + "RWY NOT IN USE.<br>";
+        } else {
+            rcr = rcr.replaceAll("undefined", "RWY NOT IN USE");
+        }
     }
 }
 
