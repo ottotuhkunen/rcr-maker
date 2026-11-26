@@ -362,6 +362,21 @@ function makeContaminants(snowtam) {
     }
 
     // Check if all parts are identical
+    const partLabels = ["@1ST PART", "@2ND PART", "@3RD PART"];
+
+    function formatPart(index) {
+        const label = partLabels[index];
+        const contaminant = partsContaminants[index];
+
+        if (contaminant === "DRY") {
+            return `${label} DRY`;
+        }
+
+        const depthPart = partsDepth[index] !== "NR" ? `${partsDepth[index]} @MM ` : "";
+        return `${label} ${partsExtent[index]} @PCT ${depthPart}${contaminant}`;
+    }
+
+// Check if all parts are identical
     if (partsContaminants[0] === partsContaminants[1] && partsContaminants[1] === partsContaminants[2]) {
         if (partsContaminants[0] === "DRY") {
             rcr += "ALL PARTS DRY.<br>";
@@ -375,9 +390,7 @@ function makeContaminants(snowtam) {
         }
     } else {
         // extent, depth, and contaminant
-        rcr += `@1ST PART ${partsExtent[0]} @PCT ${partsDepth[0] !== "NR" ? partsDepth[0] + " @MM " : ""}${partsContaminants[0]}, `;
-        rcr += `@2ND PART ${partsExtent[1]} @PCT ${partsDepth[1] !== "NR" ? partsDepth[1] + " @MM " : ""}${partsContaminants[1]}, `;
-        rcr += `@3RD PART ${partsExtent[2]} @PCT ${partsDepth[2] !== "NR" ? partsDepth[2] + " @MM " : ""}${partsContaminants[2]}.<br>`;
+        rcr += `${formatPart(0)}, ${formatPart(1)}, ${formatPart(2)}.<br>`;
     }
 
     // standard remarks
